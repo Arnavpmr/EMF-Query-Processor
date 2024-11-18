@@ -1,0 +1,22 @@
+{
+    "selections": [
+        "cust",
+        "count_1_quant",
+        "sum_2_quant",
+        "max_3_quant"
+    ],
+    "n": 3,
+    "grouping_atts": [
+        "cust"
+    ],
+    "aggregates": [
+        "count_1_quant",
+        "sum_2_quant",
+        "max_3_quant"
+    ],
+    "pred_list": [
+        "1.state='NY'",
+        "2.state='NJ",
+        "3.state='CT'"
+    ]
+}

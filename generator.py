@@ -1,4 +1,5 @@
 import subprocess
+from MFQueryProcessor import MFQueryProcessor
 
 
 def main():
@@ -7,6 +8,17 @@ def main():
     needed to run the query. That generated code should be saved to a 
     file (e.g. _generated.py) and then run.
     """
+
+    queryProcessor = MFQueryProcessor()
+    input_choice = input("Enter 1 for file input and 2 for stdin input: ")
+
+    if input_choice == "1":
+        filename = input("Enter the filename: ")
+        queryProcessor.get_input_from_file(filename)
+    else:
+        queryProcessor.get_input_from_stdin()
+
+    print(queryProcessor.inputs)
 
     body = """
     for row in cur:
