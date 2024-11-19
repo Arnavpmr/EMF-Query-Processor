@@ -1,5 +1,5 @@
 import json
-from helpers import tabs_to_spaces
+from helpers import parse_list_input, tabs_to_spaces
 
 class MFQueryProcessor:
     def __init__(self, inputs={}):

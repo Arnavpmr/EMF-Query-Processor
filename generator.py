@@ -25,6 +25,7 @@ def main():
         main_grouping_aggs_loop = f"""
     for row in cur:
         {queryProcessor.generate_grouping_declaration()}
+        grouping_attrs_key = ({", ".join(queryProcessor.inputs["grouping_attrs"])})
         if grouping_attrs_key in mf_struct:
             {queryProcessor.generate_aggr_assignments(main_grouping_aggs, False)}
         else:
@@ -67,7 +68,6 @@ def query():
     
     mf_struct = {{}}
     _global = []
-    grouping_attrs_key = ({", ".join(queryProcessor.inputs["grouping_attrs"])})
     {main_grouping_aggs_loop}
     return tabulate.tabulate(_global,
                         headers="keys", tablefmt="psql")
