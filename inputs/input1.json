@@ -6,7 +6,7 @@
         "max_3_quant"
     ],
     "n": 3,
-    "grouping_atts": [
+    "grouping_attrs": [
         "cust"
     ],
     "aggregates": [
