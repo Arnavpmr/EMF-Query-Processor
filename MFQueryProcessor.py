@@ -17,6 +17,7 @@ class MFQueryProcessor:
         self.inputs["grouping_attrs"] = parse_list_input(input("Enter the grouping attributes: "))
         self.inputs["aggregates"] = parse_list_input(input("Enter the aggregates: "))
         self.inputs["pred_list"] = parse_list_input(input("Enter the predicate list: "))
+        self.inputs["having_pred"] = input("Enter the having predicate: ")
     
     # Returns the string for initializing each aggregate field in mf class
     def __get_mf_class_assignment_from_aggr(self, full_aggr):
@@ -56,11 +57,17 @@ class MFQueryProcessor:
 
         return predicates[0] if predicates else ""
     
-    def __predicate_to_py_exp(self, pred):
-        pattern = r"(\d+)\.(\w+)"
-        replacement = r"row['\2']"
+    def __pred_to_py_exp(self, pred):
+        attr_pattern = r"(\d+)\.(\w+)"
+        attr_replacement = r"row['\2']"
 
-        return re.sub(pattern, replacement, pred)
+        return re.sub(attr_pattern, attr_replacement, pred)
+    
+    def __having_pred_to_py_exp(self, pred):
+        aggr_pattern = r"(\w+_\d+_\w+)"
+        aggr_replacement = r"val.\1"
+
+        return re.sub(aggr_pattern, aggr_replacement, pred)
 
     def __get_assignment_from_aggr(self, full_aggr):
         aggr, i, attr = full_aggr.split("_")
@@ -83,9 +90,13 @@ class MFQueryProcessor:
         return f"{tts(tab_count)}{f"\n{tts(tab_count)}".join(output)}\n"
     
     # Returns the string for the dictionary containing the output columns to be added as a row in the output table
-    def generate_output_cols(self):
+    def generate_output_loop(self):
         grouping_attr_selections = list(filter(lambda x: x in self.inputs["grouping_attrs"], self.inputs["selections"]))
         aggr_selections = list(filter(lambda x: x in self.inputs["aggregates"], self.inputs["selections"]))
+
+        loop = "for key, val in mf_struct.items():\n"
+        having_pred = self.inputs["having_pred"]
+        tabs = 2
 
         keys_outputs = ""
         aggr_outputs = f"{', '.join(map(lambda x: f"'{x}':val.{x}", aggr_selections))}"
@@ -100,22 +111,31 @@ class MFQueryProcessor:
 
             keys_outputs = f"{', '.join(keys_outputs_list)}"
 
-        return f"{keys_outputs}, {aggr_outputs}"
+        col_keys = f"{keys_outputs}, {aggr_outputs}"
+
+        if having_pred:
+            having_pred = self.__having_pred_to_py_exp(having_pred)
+            loop += f"{tts(tabs)}if {having_pred}:\n"
+            tabs += 1
+        
+        loop += f"{tts(tabs)}output_table.append({{{col_keys}}})\n"
+
+        return loop
     
-    def __generate_loop_base(self, tabs):
+    def __generate_var_loop_base(self, tabs):
         return (
             "for row in cur:\n"
             f"{tts(tabs+1)}grouping_attrs_key = ({", ".join(list(map(lambda x: f"row['{x}']", self.inputs["grouping_attrs"])))})\n\n"
         )
     
     def generate_main_var_loop(self):
-        loop = self.__generate_loop_base(1)
+        loop = self.__generate_var_loop_base(1)
         aggrs = self.getIthAggregates(0)
         predicate = self.getIthPredicate(0)
         tabs = 2
 
         if predicate:
-            predicate = self.__predicate_to_py_exp(predicate)
+            predicate = self.__pred_to_py_exp(predicate)
             loop += f"{tts(tabs)}if {predicate}:\n"
             tabs += 1
         
@@ -133,12 +153,12 @@ class MFQueryProcessor:
         if self.inputs["n"] == 0:
             return ""
 
-        loop = self.__generate_loop_base(1)
+        loop = self.__generate_var_loop_base(1)
         main_var_pred = self.getIthPredicate(0)
         tabs = 2
 
         if main_var_pred:
-            main_var_pred = self.__predicate_to_py_exp(main_var_pred)
+            main_var_pred = self.__pred_to_py_exp(main_var_pred)
             loop += f"{tts(tabs)}if {main_var_pred}:\n"
             tabs += 1
 
@@ -148,7 +168,7 @@ class MFQueryProcessor:
             loop_tabs = tabs
 
             if pred and aggrs:
-                pred = self.__predicate_to_py_exp(pred)
+                pred = self.__pred_to_py_exp(pred)
                 loop += f"{tts(loop_tabs)}if {pred}:\n"
                 loop_tabs += 1
 
