@@ -9,6 +9,8 @@ class MFQueryProcessor:
     def get_input_from_file(self, filename):
         with open(f'inputs/{filename}.json', 'r') as f:
             self.inputs = json.load(f)
+        
+        self.__preprocess_for_avrg()
     
     # Get the input from stdin and load data into inputs
     def get_input_from_stdin(self):
@@ -18,6 +20,8 @@ class MFQueryProcessor:
         self.inputs["aggregates"] = parse_list_input(input("Enter the aggregates: "))
         self.inputs["pred_list"] = parse_list_input(input("Enter the predicate list: "))
         self.inputs["having_pred"] = input("Enter the having predicate: ")
+
+        self.__preprocess_for_avrg()
     
     # Returns the string for initializing each aggregate field in mf class
     def __get_mf_class_assignment_from_aggr(self, full_aggr):
@@ -57,6 +61,19 @@ class MFQueryProcessor:
 
         return predicates[0] if predicates else ""
     
+    def __preprocess_for_avrg(self):
+        non_avrg_aggrs = set(list(filter(lambda x: x.split("_")[0] != "avrg", self.inputs["aggregates"])))
+        avrg_aggrs = list(filter(lambda x: x.split("_")[0] == "avrg", self.inputs["aggregates"]))
+
+        for avrg_aggr in avrg_aggrs:
+            aggr, i, attr = avrg_aggr.split("_")
+            if f"sum_{i}_{attr}" not in non_avrg_aggrs:
+                non_avrg_aggrs.add(f"sum_{i}_{attr}")
+            if f"count_{i}_{attr}" not in non_avrg_aggrs:
+                non_avrg_aggrs.add(f"count_{i}_{attr}")
+        
+        self.inputs["aggregates"] = list(non_avrg_aggrs) + avrg_aggrs
+    
     def __pred_to_py_exp(self, pred):
         attr_pattern = r"(\d+)\.(\w+)"
         attr_replacement = r"row['\2']"
@@ -76,7 +93,7 @@ class MFQueryProcessor:
             return " += 1"
         elif aggr == "sum":
             return f" += row['{attr}']"
-        elif aggr == "avg":
+        elif aggr == "avrg":
             return f" = mf_struct[grouping_attrs_key].sum_{i}_{attr}/mf_struct[grouping_attrs_key].count_{i}_{attr}"
         elif aggr in ["max", "min"]:
             return f" = {aggr}(mf_struct[grouping_attrs_key].{full_aggr}, row['{attr}'])"
