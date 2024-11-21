@@ -10,7 +10,7 @@ class MFQueryProcessor:
         with open(f'inputs/{filename}.json', 'r') as f:
             self.inputs = json.load(f)
         
-        self.__preprocess_for_avrg()
+        self.__preprocess_for_avg()
     
     # Get the input from stdin and load data into inputs
     def get_input_from_stdin(self):
@@ -21,7 +21,7 @@ class MFQueryProcessor:
         self.inputs["pred_list"] = parse_list_input(input("Enter the predicate list: "))
         self.inputs["having_pred"] = input("Enter the having predicate: ")
 
-        self.__preprocess_for_avrg()
+        self.__preprocess_for_avg()
     
     # Returns the string for initializing each aggregate field in mf class
     def __get_mf_class_assignment_from_aggr(self, full_aggr):
@@ -61,18 +61,18 @@ class MFQueryProcessor:
 
         return predicates[0] if predicates else ""
     
-    def __preprocess_for_avrg(self):
-        non_avrg_aggrs = set(list(filter(lambda x: x.split("_")[0] != "avrg", self.inputs["aggregates"])))
-        avrg_aggrs = list(filter(lambda x: x.split("_")[0] == "avrg", self.inputs["aggregates"]))
+    def __preprocess_for_avg(self):
+        non_avg_aggrs = set(list(filter(lambda x: x.split("_")[0] != "avg", self.inputs["aggregates"])))
+        avg_aggrs = list(filter(lambda x: x.split("_")[0] == "avg", self.inputs["aggregates"]))
 
-        for avrg_aggr in avrg_aggrs:
-            aggr, i, attr = avrg_aggr.split("_")
-            if f"sum_{i}_{attr}" not in non_avrg_aggrs:
-                non_avrg_aggrs.add(f"sum_{i}_{attr}")
-            if f"count_{i}_{attr}" not in non_avrg_aggrs:
-                non_avrg_aggrs.add(f"count_{i}_{attr}")
+        for avg_aggr in avg_aggrs:
+            aggr, i, attr = avg_aggr.split("_")
+            if f"sum_{i}_{attr}" not in non_avg_aggrs:
+                non_avg_aggrs.add(f"sum_{i}_{attr}")
+            if f"count_{i}_{attr}" not in non_avg_aggrs:
+                non_avg_aggrs.add(f"count_{i}_{attr}")
         
-        self.inputs["aggregates"] = list(non_avrg_aggrs) + avrg_aggrs
+        self.inputs["aggregates"] = list(non_avg_aggrs) + avg_aggrs
     
     def __pred_to_py_exp(self, pred):
         attr_pattern = r"(\d+)\.(\w+)"
@@ -93,7 +93,7 @@ class MFQueryProcessor:
             return " += 1"
         elif aggr == "sum":
             return f" += row['{attr}']"
-        elif aggr == "avrg":
+        elif aggr == "avg":
             return f" = mf_struct[grouping_attrs_key].sum_{i}_{attr}/mf_struct[grouping_attrs_key].count_{i}_{attr}"
         elif aggr in ["max", "min"]:
             return f" = {aggr}(mf_struct[grouping_attrs_key].{full_aggr}, row['{attr}'])"

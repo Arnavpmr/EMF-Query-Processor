@@ -3,7 +3,7 @@
         "cust",
         "prod",
         "count_1_quant",
-        "avrg_2_quant",
+        "avg_2_quant",
         "max_3_quant"
     ],
     "n": 3,
@@ -13,7 +13,7 @@
     ],
     "aggregates": [
         "count_1_quant",
-        "avrg_2_quant",
+        "avg_2_quant",
         "max_3_quant"
     ],
     "pred_list": [

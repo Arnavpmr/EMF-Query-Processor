@@ -1,8 +1,6 @@
 import subprocess
 from MFQueryProcessor import MFQueryProcessor
 
-#TODO
-# Add support for avrg
 def main():
     """
     This is the generator code. It should take in the MF structure and generate the code
