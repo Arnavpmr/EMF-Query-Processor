@@ -1,22 +1,18 @@
 {
     "selections": [
         "cust",
-        "count_1_quant",
-        "sum_2_quant",
-        "max_3_quant"
+        "prod",
+        "max_0_quant"
     ],
-    "n": 3,
+    "n": 0,
     "grouping_attrs": [
-        "cust"
+        "cust",
+        "prod"
     ],
     "aggregates": [
-        "count_1_quant",
-        "sum_2_quant",
-        "max_3_quant"
+        "max_0_quant"
     ],
     "pred_list": [
-        "1.state='NY'",
-        "2.state='NJ",
-        "3.state='CT'"
+        "0.year==2020"
     ]
 }

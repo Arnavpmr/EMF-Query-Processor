@@ -2,5 +2,6 @@
 def parse_list_input(input: str) -> list[str]:
     return input.replace(" ", "").replace("\n", "").split(";")
 
-def tabs_to_spaces(num_tabs: int) -> str:
+# Returns a string with spaces for the given number of tabs
+def tts(num_tabs: int) -> str:
     return "    " * num_tabs
