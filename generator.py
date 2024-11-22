@@ -1,5 +1,5 @@
 import subprocess
-from MFQueryProcessor import MFQueryProcessor
+from EMFQueryProcessor import EMFQueryProcessor
 
 def main():
     """
@@ -8,7 +8,7 @@ def main():
     file (e.g. _generated.py) and then run.
     """
 
-    queryProcessor = MFQueryProcessor()
+    queryProcessor = EMFQueryProcessor()
 
     input_choice = input("Enter 1 for file input and 2 for stdin input: ")
 
@@ -41,13 +41,14 @@ def query():
     cur = conn.cursor()
     cur.execute("SELECT * FROM sales")
     
-    mf_struct = {{}}
+    mf_struct = []
+    mf_struct_set = set()
     output_table = []
 
     {queryProcessor.generate_main_var_loop()}
     cur.scroll(0, mode='absolute')
 
-    {queryProcessor.generate_grouping_vars_loop()}
+    {queryProcessor.generate_grouping_vars_loop([1, 2])}
     {queryProcessor.generate_output_loop()}
     return tabulate.tabulate(output_table,
                         headers="keys", tablefmt="psql")
