@@ -1,5 +1,6 @@
 import json, re
 from helpers import parse_list_input, tts
+from TopoSort import calculate_groupings_with_topo_sort
 
 class EMFQueryProcessor:
     def __init__(self, inputs={}):
@@ -78,9 +79,9 @@ class EMFQueryProcessor:
         self.inputs["aggregates"] = list(non_avg_aggrs) + avg_aggrs
     
     def __pred_to_py_exp(self, pred):
-        main_attr_pattern = r"0\.(\w+)"
-        var_attr_pattern = r"\d+\.(\w+)"
-        aggr_pattern = r"(\w+_\d+_\w+)"
+        main_attr_pattern = r"0\.([a-z]+)"
+        var_attr_pattern = r"\d+\.([a-z]+)"
+        aggr_pattern = r"([a-z]+_\d+_[a-z]+)"
         main_attr_replacement = r"h.\1"
         var_attr_replacement = r"row['\1']"
 
@@ -90,10 +91,11 @@ class EMFQueryProcessor:
     
     def __get_where_pred_py_exp(self):
         pred = self.getIthPredicate(0)
-        return re.sub(r"0\.(\w+)", r"row['\1']", pred)
+        return re.sub(r"0\.([a-z]+)", r"row['\1']", pred)
 
     def __get_having_pred_py_exp(self):
-        return re.sub(r"(\w+_\d+_\w+)", r"h.\1", self.inputs["having_pred"])
+        temp = re.sub(r"([a-z]+_\d+_[a-z]+)", r"h.\1", self.inputs["having_pred"])
+        return re.sub(r"0\.([a-z]+)", r"h.\1", temp)
 
     def __get_assignment_from_aggr(self, full_aggr):
         aggr, i, attr = full_aggr.split("_")
@@ -108,12 +110,12 @@ class EMFQueryProcessor:
             return f" = {aggr}(h.{full_aggr}, row['{attr}'])"
 
     def generate_aggr_assignments(self, aggrs, tab_count):
-        output = []
-
-        for aggr in aggrs:
-            output.append(f"h.{aggr}{self.__get_assignment_from_aggr(aggr)}")
-
-        return f"{tts(tab_count)}{f"\n{tts(tab_count)}".join(output)}\n"
+        return f"{tts(tab_count)}{f"\n{tts(tab_count)}".join(
+            map(
+                lambda x: f"h.{x}{self.__get_assignment_from_aggr(x)}",
+                aggrs
+            )
+        )}\n"
     
     def generate_grouping_attr_assignments(self, tabs):
         return f"{tts(tabs)}{f"\n{tts(tabs)}".join(
@@ -138,12 +140,6 @@ class EMFQueryProcessor:
 
         return loop
     
-    def __generate_var_loop_base(self, tabs):
-        return (
-            "for row in cur:\n"
-            f"{tts(tabs+1)}grouping_attrs_key = ({", ".join(list(map(lambda x: f"row['{x}']", self.inputs["grouping_attrs"])))})\n\n"
-        )
-    
     def generate_main_var_loop(self):
         loop = (
             "for row in cur:\n"
@@ -158,27 +154,36 @@ class EMFQueryProcessor:
             tabs += 1
         
         loop += (
-            f"{tts(tabs)}if grouping_attrs_key not in mf_struct_set:\n"
-            f"{tts(tabs+1)}mf_struct_set.add(grouping_attrs_key)\n\n"
+            f"{tts(tabs)}if grouping_attrs_key not in mf_struct_dict:\n"
             f"{tts(tabs+1)}h = H()\n"
         )
 
         loop += self.generate_grouping_attr_assignments(tabs+1)
-        if aggrs:
-            loop += self.generate_aggr_assignments(aggrs, tabs+1)
+        loop += (
+            f"{tts(tabs+1)}mf_struct.append(h)\n"
+            f"{tts(tabs+1)}mf_struct_dict[grouping_attrs_key] = h\n\n"
+            f"{tts(tabs)}h = mf_struct_dict[grouping_attrs_key]\n"
+        )
 
-        loop += f"{tts(tabs+1)}mf_struct.append(h)\n"
+        if aggrs:
+            loop += self.generate_aggr_assignments(aggrs, tabs)
 
         return loop
     
-    def generate_grouping_vars_loop(self, vars):
+    def __generate_multi_grouping_vars_loop(self, vars):
         loop = (
             "for row in cur:\n"
             f"{tts(2)}for h in mf_struct:\n"
         )
+        init_tabs = 3
+        where_pred = self.__get_where_pred_py_exp()
+
+        if where_pred:
+            loop += f"{tts(init_tabs)}if {where_pred}:\n"
+            init_tabs += 1
 
         for var in vars:
-            tabs = 3
+            tabs = init_tabs
             aggrs = self.getIthAggregates(var)
             pred = self.getIthPredicate(var)
 
@@ -191,31 +196,41 @@ class EMFQueryProcessor:
                 loop += self.generate_aggr_assignments(aggrs, tabs)
         
         return loop
-
-    def generate_grouping_vars_loop2(self):
-        if self.inputs["n"] == 0:
-            return ""
-
-        loop = self.__generate_var_loop_base(1)
-        main_var_pred = self.getIthPredicate(0)
-        tabs = 2
-
-        if main_var_pred:
-            main_var_pred = self.__pred_to_py_exp(main_var_pred)
-            loop += f"{tts(tabs)}if {main_var_pred}:\n"
-            tabs += 1
+    
+    def __get_emf_dependency_graph(self):
+        output = {}
 
         for i in range(1, self.inputs["n"] + 1):
-            aggrs = self.getIthAggregates(i)
             pred = self.getIthPredicate(i)
-            loop_tabs = tabs
 
-            if pred and aggrs:
-                pred = self.__pred_to_py_exp(pred)
-                loop += f"{tts(loop_tabs)}if {pred}:\n"
-                loop_tabs += 1
+            if pred:
+                dependencies = list(
+                    filter(
+                        lambda x: int(x.split("_")[1]) != 0,
+                        re.findall(r"[a-z]+_\d+_[a-z]+", pred)
+                    )
+                )
 
-            if aggrs:
-                loop += self.generate_aggr_assignments(aggrs, loop_tabs)
+                output[i] = list(
+                    map(
+                        lambda x: int(x.split("_")[1]),
+                        dependencies
+                    )
+                )
 
-        return loop
+        return output
+
+    def generate_minimal_grouping_var_loops(self):
+        dependency_graph = self.__get_emf_dependency_graph()
+
+        # Order the groupings based on the dependencies from topo sort
+        ordered_groupings = calculate_groupings_with_topo_sort(dependency_graph)
+
+        return f"\n{tts(1)}cur.scroll(0, mode='absolute')\n\n{tts(1)}".join(
+            list(
+                map(
+                    lambda x: self.__generate_multi_grouping_vars_loop(x),
+                    ordered_groupings
+                )
+            )
+        )

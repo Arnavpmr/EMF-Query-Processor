@@ -1,0 +1,14 @@
+{
+    "selections": [
+        "cust"
+    ],
+    "n": 0,
+    "grouping_attrs": [
+        "cust"
+    ],
+    "aggregates": [
+    ],
+    "pred_list": [
+    ],
+    "having_pred": ""
+}

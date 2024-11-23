@@ -2,6 +2,7 @@
     "selections": [
         "prod",
         "month",
+        "count_0_quant",
         "count_1_quant",
         "count_2_quant"
     ],
@@ -12,13 +13,15 @@
     ],
     "aggregates": [
         "avg_0_quant",
+        "avg_1_quant",
+        "count_0_quant",
         "count_1_quant",
         "count_2_quant"
     ],
     "pred_list": [
-        "0.year==2020 and 0.month>1 and 0.month<12",
+        "0.year==2020",
         "1.prod==0.prod and 1.month==0.month-1 and 1.quant>avg_0_quant",
-        "2.prod==0.prod and 2.month==0.month+1 and 2.quant>avg_0_quant"
+        "2.prod==0.prod and 2.month==0.month+1 and 2.quant>avg_1_quant"
     ],
-    "having_pred": "count_1_quant>30 and count_2_quant>30"
+    "having_pred": "0.month>1 and 0.month<12 and 0.prod=='Jelly'"
 }
