@@ -1,0 +1,31 @@
+{
+    "selections": [
+        "cust",
+        "prod",
+        "max_1_quant",
+        "date_2",
+        "max_3_quant",
+        "date_4",
+        "max_5_quant",
+        "date_6"
+    ],
+    "n": 6,
+    "grouping_attrs": [
+        "cust", 
+        "prod"
+    ],
+    "aggregates": [
+        "max_1_quant",
+        "max_3_quant",
+        "max_5_quant"
+    ],
+    "pred_list": [
+        "1.cust==0.cust and 1.prod==0.prod and 1.state=='NY'",
+        "2.cust==0.cust and 2.prod==0.prod and 2.quant==max_1_quant",
+        "3.cust==0.cust and 3.prod==0.prod and 3.state=='NJ'",
+        "4.cust==0.cust and 4.prod==0.prod and 4.quant==max_3_quant",
+        "5.cust==0.cust and 5.prod==0.prod and 5.state=='CT'",
+        "6.cust==0.cust and 6.prod==0.prod and 6.quant==max_5_quant"
+    ],
+    "having_pred": ""
+}

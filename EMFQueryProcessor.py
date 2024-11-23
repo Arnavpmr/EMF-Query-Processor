@@ -37,20 +37,34 @@ class EMFQueryProcessor:
     # Returns the string for initializing each grouping attribute in mf class
     def __get_mf_class_assignment_from_attr(self, attr):
         if attr in ["day", "month", "year", "quant"]:
-            return f"{attr}=0"
+            return "=0"
         else:
-            return f"{attr}=''"
+            return "=''"
 
     # Returns the string for initializing the mf class
     def initialize_mf_class(self):
-        grouping_attr_assignments = list(map(self.__get_mf_class_assignment_from_attr, self.inputs["grouping_attrs"]))
+        grouping_attr_assignments = list(
+            map(
+                lambda x: f"{x}{self.__get_mf_class_assignment_from_attr(x)}",
+                self.inputs["grouping_attrs"]
+            )
+        )
         aggr_assignments = list(map(self.__get_mf_class_assignment_from_aggr, self.inputs["aggregates"]))
+        selection_attr_assignments = list(
+            map(
+                lambda x: f"{x}{self.__get_mf_class_assignment_from_attr(x.split("_")[0])}",
+                filter(
+                    lambda x: re.match(r"^[a-z]+_\d+$", x),
+                    self.inputs["selections"]
+                )
+            )
+        )
 
         mf_class = (
              "class H:\n"
             f"\t{"\n\t"
                .join(
-                   grouping_attr_assignments + aggr_assignments
+                   grouping_attr_assignments + selection_attr_assignments + aggr_assignments
                 )
             }"
             "\n"
@@ -64,6 +78,14 @@ class EMFQueryProcessor:
     def getIthPredicate(self, i):
         predicates = list(filter(lambda x: int(x[0]) == i, self.inputs["pred_list"]))
         return predicates[0] if predicates else ""
+    
+    def getIthSelectionAttrs(self, i):
+        return list(
+            filter(
+                lambda x: re.match(f"^[a-z]+_{i}$", x),
+                self.inputs["selections"]
+            )
+        )
     
     def __preprocess_for_avg(self):
         non_avg_aggrs = set(list(filter(lambda x: x.split("_")[0] != "avg", self.inputs["aggregates"])))
@@ -186,11 +208,19 @@ class EMFQueryProcessor:
             tabs = init_tabs
             aggrs = self.getIthAggregates(var)
             pred = self.getIthPredicate(var)
+            selection_attrs = self.getIthSelectionAttrs(var)
 
             if pred:
                 pred = self.__pred_to_py_exp(pred)
                 loop += f"{tts(tabs)}if {pred}:\n"
                 tabs += 1
+            
+            if selection_attrs:
+                loop += f"{tts(tabs)}{f'\n{tts(tabs)}'.join(
+                    map(
+                        lambda x: f"h.{x} = row['{x.split("_")[0]}']", selection_attrs
+                    )
+                )}\n"
 
             if aggrs:
                 loop += self.generate_aggr_assignments(aggrs, tabs)
