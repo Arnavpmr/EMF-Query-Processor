@@ -21,5 +21,5 @@
         "2.cust==0.cust and 2.prod==0.prod and 2.state=='NJ'",
         "3.cust==0.cust and 3.prod==0.prod and 3.state=='CT'"
     ],
-    "having_pred": "sum_2_quant>15000"
+    "having_pred": ""
 }

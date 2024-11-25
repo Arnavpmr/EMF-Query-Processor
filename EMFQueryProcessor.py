@@ -6,14 +6,14 @@ class EMFQueryProcessor:
     def __init__(self, inputs={}):
         self.inputs = inputs
     
-    # Get the input from a json file and load data into inputs
+    # Get the input from a json file and load data into inputs field
     def get_input_from_file(self, filename):
         with open(f'inputs/{filename}.json', 'r') as f:
             self.inputs = json.load(f)
         
         self.__preprocess_for_avg()
     
-    # Get the input from stdin and load data into inputs
+    # Get the input from stdin and load data into inputs field
     def get_input_from_stdin(self):
         self.inputs["selections"] = parse_list_input(input("Enter the selections: "))
         self.inputs["n"] = int(input("Enter the value of n: "))
@@ -72,13 +72,16 @@ class EMFQueryProcessor:
 
         return mf_class
 
+    # Returns a list of aggregates for the ith grouping variable
     def getIthAggregates(self, i):
         return list(filter(lambda x: int(x.split("_")[1]) == i, self.inputs["aggregates"]))
     
+    # Returns the predicate for the ith grouping variable if there is one
     def getIthPredicate(self, i):
         predicates = list(filter(lambda x: int(x[0]) == i, self.inputs["pred_list"]))
         return predicates[0] if predicates else ""
     
+    # Returns a list of selection attributes for the ith grouping variable
     def getIthSelectionAttrs(self, i):
         return list(
             filter(
@@ -87,6 +90,12 @@ class EMFQueryProcessor:
             )
         )
     
+    """
+    This function scans the list of aggregates for any avg aggregates.
+    For every avg aggregate, it adds the corresponding sum and count aggregates
+    if they are not already present. It also moves all avg aggregates to the end
+    to ensure they are calculated after the sum and count aggregates in the generated code.
+    """
     def __preprocess_for_avg(self):
         non_avg_aggrs = set(list(filter(lambda x: x.split("_")[0] != "avg", self.inputs["aggregates"])))
         avg_aggrs = list(filter(lambda x: x.split("_")[0] == "avg", self.inputs["aggregates"]))
@@ -100,6 +109,10 @@ class EMFQueryProcessor:
         
         self.inputs["aggregates"] = list(non_avg_aggrs) + avg_aggrs
     
+    """
+    Given a such that predicate, this function converts the predicate to a python expression.
+    This python expression is then used in the generated code to check the predicate.
+    """
     def __pred_to_py_exp(self, pred):
         main_attr_pattern = r"0\.([a-z]+)"
         var_attr_pattern = r"\d+\.([a-z]+)"
@@ -111,14 +124,24 @@ class EMFQueryProcessor:
         pred = re.sub(var_attr_pattern, var_attr_replacement, pred)
         return re.sub(aggr_pattern, r"h.\1", pred)
     
+    """
+    Given the where predicate, this function converts the predicate to a python expression.
+    Although the where predicate is in the such that clause, a seperate function is needed since
+    the 0th grouping variable condition needs to be processed differently.
+    """
     def __get_where_pred_py_exp(self):
         pred = self.getIthPredicate(0)
         return re.sub(r"0\.([a-z]+)", r"row['\1']", pred)
 
+    # Given the having predicate, this function converts the predicate to a python expression.
     def __get_having_pred_py_exp(self):
         temp = re.sub(r"([a-z]+_\d+_[a-z]+)", r"h.\1", self.inputs["having_pred"])
         return re.sub(r"0\.([a-z]+)", r"h.\1", temp)
 
+    """
+    Given an aggregate, this function returns the assignment to be made to the aggregate
+    in order to update it in the table scan.
+    """
     def __get_assignment_from_aggr(self, full_aggr):
         aggr, i, attr = full_aggr.split("_")
 
@@ -131,6 +154,12 @@ class EMFQueryProcessor:
         elif aggr in ["max", "min"]:
             return f" = {aggr}(h.{full_aggr}, row['{attr}'])"
 
+    """
+    Given a list of aggregates, this function generates the assignments to be made to
+    them in order to update them in the table scan. It returns them as a single string and 
+    automatically seperates them with a newline character to ensure they are on separate lines.
+    This string can be directly inserted into the generated code that way.
+    """
     def generate_aggr_assignments(self, aggrs, tab_count):
         return f"{tts(tab_count)}{f"\n{tts(tab_count)}".join(
             map(
@@ -139,6 +168,11 @@ class EMFQueryProcessor:
             )
         )}\n"
     
+    """
+    Returns the assignments to be made to the grouping attributes in the table scan.
+    The string is returned with a newline character separating each assignment to ensure
+    that it can be directly inserted into the generated code that way.
+    """
     def generate_grouping_attr_assignments(self, tabs):
         return f"{tts(tabs)}{f"\n{tts(tabs)}".join(
             map(
@@ -147,7 +181,11 @@ class EMFQueryProcessor:
             )
         )}\n"
     
-    # Returns the string for the dictionary containing the output columns to be added as a row in the output table
+    """
+    This function returns the string which is a for loop that generates the output table.
+    This output table is generated by iterating over the selections and adding them as cols
+    to the output table.
+    """
     def generate_output_loop(self):
         loop = "for h in mf_struct:\n"
         having_pred = self.__get_having_pred_py_exp()
@@ -162,6 +200,10 @@ class EMFQueryProcessor:
 
         return loop
     
+    """
+    This function generates the loop that initializes the mf_struct and updates
+    the aggregates for the 0th grouping variable.
+    """
     def generate_main_var_loop(self):
         loop = (
             "for row in cur:\n"
@@ -192,6 +234,10 @@ class EMFQueryProcessor:
 
         return loop
     
+    """
+    Given a list of grouping variables as numbers, this function generates the loop
+    that updates the aggregates and selection attributes for each grouping variable.
+    """
     def __generate_multi_grouping_vars_loop(self, vars):
         loop = (
             "for row in cur:\n"
@@ -227,6 +273,10 @@ class EMFQueryProcessor:
         
         return loop
     
+    """
+    This function scans the predicate for each grouping variable and identifies all the aggregates
+    used in the predicate. It uses this information to construct a graph of all the dependencies.
+    """
     def __get_emf_dependency_graph(self):
         output = {}
 
@@ -250,6 +300,12 @@ class EMFQueryProcessor:
 
         return output
 
+    """
+    This function generates the loops for each grouping variable in the order of their dependencies.
+    It uses topological sort in order to determine the groups of grouping variables that can be updated
+    in the same loop. It then generates the loop for each group of grouping variables and returns them as
+    a string in the correct order. This ensures that the number of table scans is more minimized.
+    """
     def generate_minimal_grouping_var_loops(self):
         dependency_graph = self.__get_emf_dependency_graph()
 

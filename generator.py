@@ -3,9 +3,9 @@ from EMFQueryProcessor import EMFQueryProcessor
 
 def main():
     """
-    This is the generator code. It should take in the MF structure and generate the code
-    needed to run the query. That generated code should be saved to a 
-    file (e.g. _generated.py) and then run.
+    This project is an EMF Query Processor that takes in a JSON file or stdin input that represents the EMF query
+    to process on the sales table. The program effectively generates another python program that can be executed in order
+    to run the inputted query.
     """
 
     queryProcessor = EMFQueryProcessor()
@@ -68,7 +68,7 @@ if "__main__" == __name__:
     open(output_path, "w").write(output_str)
 
     # Execute the generated code
-    subprocess.run(["python", output_path])
+    # subprocess.run(["python", output_path])
 
 
 if "__main__" == __name__:
