@@ -1,0 +1,23 @@
+{
+    "selections": [
+        "prod",
+        "month",
+        "avg_1_quant",
+        "avg_2_quant"
+    ],
+    "n": 2,
+    "grouping_attrs": [
+        "prod", 
+        "month"
+    ],
+    "aggregates": [
+        "avg_1_quant",
+        "avg_2_quant"
+    ],
+    "pred_list": [
+        "0.year==2020",
+        "1.prod==0.prod and 1.month<0.month",
+        "2.prod==0.prod and 2.month>0.month"
+    ],
+    "having_pred": ""
+}

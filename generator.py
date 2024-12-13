@@ -1,4 +1,4 @@
-import subprocess
+import os, subprocess
 from EMFQueryProcessor import EMFQueryProcessor
 
 def main():
@@ -62,7 +62,10 @@ if "__main__" == __name__:
     main()
     """
 
-    output_path = f"outputs/{output_file}.py"
+    output_path = os.path.join("outputs", f"{output_file}.py")
+
+    # Ensure the outputs directory exists
+    os.makedirs("outputs", exist_ok=True)
 
     # Write the generated code to a file
     open(output_path, "w").write(output_str)

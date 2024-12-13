@@ -19,7 +19,8 @@ def query():
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
 
-    with open("inputs_sql/emf_dependant_gvs.sql", "r") as f:
+    file_name = input("Enter the name of the SQL file without extension: ")
+    with open(f"inputs_sql/{file_name}.sql", "r") as f:
         cur.execute(f.read())
 
     return tabulate.tabulate(cur.fetchall(),

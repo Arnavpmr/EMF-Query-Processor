@@ -226,10 +226,10 @@ class EMFQueryProcessor:
         loop += (
             f"{tts(tabs+1)}mf_struct.append(h)\n"
             f"{tts(tabs+1)}mf_struct_dict[grouping_attrs_key] = h\n\n"
-            f"{tts(tabs)}h = mf_struct_dict[grouping_attrs_key]\n"
         )
 
         if aggrs:
+            loop += f"{tts(tabs)}h = mf_struct_dict[grouping_attrs_key]\n"
             loop += self.generate_aggr_assignments(aggrs, tabs)
 
         return loop
