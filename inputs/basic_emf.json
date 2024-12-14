@@ -11,8 +11,6 @@
         "month"
     ],
     "aggregates": [
-        "avg_0_quant",
-        "count_0_quant",
         "count_1_quant",
         "count_2_quant"
     ],
