@@ -1,0 +1,21 @@
+{
+    "selections": [
+        "cust",
+        "prod",
+        "count_0_quant",
+        "max_0_quant",
+        "avg_0_quant"
+    ],
+    "n": 0,
+    "grouping_attrs": [
+        "cust", 
+        "prod"
+    ],
+    "aggregates": [
+        "count_0_quant",
+        "max_0_quant",
+        "avg_0_quant"
+    ],
+    "pred_list": [],
+    "having_pred": "avg_0_quant>100"
+}

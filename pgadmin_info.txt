@@ -1,2 +1,0 @@
-# This is command to start pgadmin4 in docker container
-docker run -p 80:80 --network host --env-file .env.pgadmin dpage/pgadmin4

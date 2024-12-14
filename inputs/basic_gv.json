@@ -1,0 +1,25 @@
+{
+    "selections": [
+        "cust",
+        "prod",
+        "count_1_quant",
+        "avg_2_quant",
+        "max_3_quant"
+    ],
+    "n": 3,
+    "grouping_attrs": [
+        "cust", 
+        "prod"
+    ],
+    "aggregates": [
+        "count_1_quant",
+        "avg_2_quant",
+        "max_3_quant"
+    ],
+    "pred_list": [
+        "1.cust==0.cust and 1.prod==0.prod and 1.state=='NY'",
+        "2.cust==0.cust and 2.prod==0.prod and 2.state=='NJ'",
+        "3.cust==0.cust and 3.prod==0.prod and 3.state=='CT'"
+    ],
+    "having_pred": ""
+}
